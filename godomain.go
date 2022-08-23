@@ -37,9 +37,9 @@ func ParseDomain(name string) (Domain, error) {
 func (d Domain) String() string {
 	switch d.level {
 	case 2:
-		fmt.Print(fmt.Sprintf("%v.%v", d.l2, d.tld))
+		return fmt.Sprintf("%v.%v", d.l2, d.tld)
 	case 3:
-		fmt.Print(fmt.Sprintf("%v.%v.%v", d.l3, d.l2, d.tld))
+		return fmt.Sprintf("%v.%v.%v", d.l3, d.l2, d.tld)
 	}
 	return ""
 }
