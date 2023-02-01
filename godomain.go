@@ -2,76 +2,53 @@ package godomain
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 )
 
-const domainSeparator = "."
-const domainRegex = "^([a-z0-9.-]*)$"
+const domainSplitSeparator = "."
 
+// Domain represents level-1, level-2 and level-3... parts of Domain as tld, domain and record
 type Domain struct {
-	tld   string
-	l2    string
-	l3    string
-	level int
+	tld    string
+	domain string
+	record string
 }
 
-func ParseDomain(name string) (Domain, error) {
-	m, _ := regexp.MatchString(domainRegex, name)
-	if !m {
-		return Domain{}, fmt.Errorf("domain invalid by regex %v", domainRegex)
-	}
-	d := reverseStringList(strings.Split(name, domainSeparator))
+// Parse parses domainName string to Domain obj
+func Parse(domainName string) *Domain {
+	d := reverseStringList(strings.Split(trimAll(domainName), domainSplitSeparator))
 	switch len(d) {
 	case 1:
-		return Domain{}, fmt.Errorf("unsupported domain level tld-only")
+		return &Domain{tld: d[0], domain: "", record: ""}
 	case 2:
-		return Domain{tld: d[0], l2: d[1], level: 2}, nil
-	case 3:
-		return Domain{tld: d[0], l2: d[1], l3: d[2], level: 3}, nil
+		return &Domain{tld: d[0], domain: d[1]}
 	default:
-		return Domain{}, fmt.Errorf("unsupported domain level greater than 3")
+		return &Domain{tld: d[0], domain: d[1], record: strings.Join(reverseStringList(d[2:]), domainSplitSeparator)}
 	}
 }
 
+// String returns record + domain + tld parts.
+// Ex: admin.gmail.google.com >>> admin.gmail.google.com
 func (d Domain) String() string {
-	switch d.level {
-	case 2:
-		return fmt.Sprintf("%v.%v", d.l2, d.tld)
-	case 3:
-		return fmt.Sprintf("%v.%v.%v", d.l3, d.l2, d.tld)
-	}
-	return ""
+	return trimDot(fmt.Sprintf("%v.%v.%v", d.record, d.domain, d.tld))
 }
 
-func (d Domain) GetTLD() string {
-	return d.tld
+// Domain returns domain + tld parts.
+// Ex: admin.gmail.google.com >>> google.com
+func (d Domain) Domain() string {
+	return trimDot(fmt.Sprintf("%v.%v", d.domain, d.tld))
 }
 
-func (d Domain) GetL2() string {
-	return fmt.Sprintf("%v.%v", d.l2, d.tld)
+// Tld returns tld part only.
+// Ex: admin.gmail.google.com >>> com
+func (d Domain) Tld() string {
+	return trimDot(fmt.Sprintf("%v", d.tld))
 }
 
-func (d Domain) GetL2Only() string {
-	return d.l2
-}
-
-func (d Domain) GetL3() (string, error) {
-	if d.l3 == "" {
-		return "", fmt.Errorf("domain level 3 is not set")
-	}
-	return fmt.Sprintf("%v.%v.%v", d.l3, d.l2, d.tld), nil
-}
-
-func (d Domain) GetL3Only() (string, error) {
-	if d.l3 == "" {
-		return "", fmt.Errorf("domain level 3 is not set")
-	}
-	return d.l3, nil
-}
-
-func (d Domain) GetLevel() int {
-	return d.level
+// Record returns record part only.
+// Ex: admin.gmail.google.com >>> admin.gmail
+func (d Domain) Record() string {
+	return trimDot(fmt.Sprintf("%v", d.record))
 }
 
 func reverseStringList(strings []string) []string {
@@ -80,4 +57,17 @@ func reverseStringList(strings []string) []string {
 		strings[i], strings[j] = strings[j], strings[i]
 	}
 	return strings
+}
+
+func trimAll(s string) string {
+	s = strings.TrimSpace(s)
+	s = strings.ReplaceAll(s, " ", "")
+	s = trimDot(s)
+	return s
+}
+
+func trimDot(s string) string {
+	s = strings.TrimLeft(s, domainSplitSeparator)
+	s = strings.TrimRight(s, domainSplitSeparator)
+	return s
 }
